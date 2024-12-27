@@ -1,0 +1,70 @@
+This guide provides step-by-step instructions for configuring SSH access restriction for Network Administrator only. The configuration ensures that only users from the Network Admin VLAN (192.168.0.0/24) can access the router via SSH while maintaining normal network functionality for other users.
+
+Prerequisites
+Cisco Router with IOS
+Network Administrator subnet: 192.168.0.0/24
+Network Admin VLAN: 10
+Basic understanding of Cisco IOS commands
+Configuration Steps
+Step 1: Configure SSH on the router
+ 
+Router0(config)# hostname Router0
+Router0(config)# ip domain-name example.com
+Router0(config)# crypto key generate rsa 
+                              When prompted for modulus size, enter: 1024
+Router0(config)# username admin privilege 15 secret YourStrongPassword123
+ 
+ 
+Step 2: Create an access list to permit SSH only from Network Admin network
+(ეს კონფიგი სვიჩზე არ კეთდება)
+Router0(config)# ip access-list extended SSH_ACCESS
+Router0(config-ext-nacl)# permit tcp 192.168.0.0 0.0.0.255 any eq 22
+Router0(config-ext-nacl)# deny tcp any any eq 22
+Router0(config-ext-nacl)# permit ip any any
+Router0(config-ext-nacl)# exit
+(ეს კონფიგი სვიჩზე არ კეთდება)
+ 
+Step 3: Configure VTY lines to use SSH with the access list
+ 
+Router0(config)# line vty 0 4
+Router0(config-line)# transport input ssh
+Router0(config-line)# login local
+Router0(config-line)# access-class SSH_ACCESS in
+Router0(config-line)# exit
+ 
+ 
+Step 4: Apply the access list to the correct sub-interface (VLAN 10)
+ 
+Router0(config)# interface GigabitEthernet0/0/1.10
+Router0(config-subif)# ip access-group SSH_ACCESS in
+Router0(config-subif)# exit
+ 
+ 
+Verification Commands
+To verify your configuration, use these commands:
+
+ 
+Router0# show run | section line vty
+Router0# show access-lists SSH_ACCESS
+Router0# show ip interface GigabitEthernet0/0/1.10
+ 
+ 
+Important Notes
+Replace "YourStrongPassword123" with a secure password
+This configuration allows only 5 simultaneous SSH sessions (vty 0 4)
+The access-list permits all other traffic (permit ip any any)
+Make sure to apply the access-list to the correct interface matching your network topology
+Configuration Breakdown
+SSH Configuration: Enables SSH server with RSA key generation
+Access List:
+Permits SSH from Network Admin network (192.168.0.0/24)
+Denies SSH from all other sources
+Permits all other types of traffic
+VTY Configuration: Restricts virtual terminal lines to SSH only
+Interface Configuration: Applies restrictions to VLAN 10 sub-interface
+Security Considerations
+Use strong passwords
+Regularly update access lists
+Monitor SSH access attempts using logging
+Consider implementing timeout values for SSH sessions
+Regularly backup your configuration
